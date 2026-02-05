@@ -327,11 +327,11 @@ function PsychometricTest() {
       {screen === 'home' && (
         <div className="home-screen">
           <div className="home-content">
-            <h1 className="home-title">דף זה מדמה את תוכנת הכתיבה למבחן הפסיכומטרי</h1>
+            <h1 className="home-title">דף זה מדמה את תוכנת הכתיבת החיבור בפסיכומטרי</h1>
             
             <div className="input-group">
               <label htmlFor="extraTime" className="input-label">
-                כמה זמן נוסף קיבלת למבחן? (בדקות)
+                כמה תוספת זמן קיבלת לחיבור? (בדקות)
               </label>
               <input 
                 type="number" 

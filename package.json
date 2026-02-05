@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "סימולטור מבחן כתיבה פסיכומטרי - Psychometric Writing Test Simulator",
+  "description": "סימולטור כתיבת חיבור ממוחשבת בפסיכומטרי- Psychometric Writing essay Simulator",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
