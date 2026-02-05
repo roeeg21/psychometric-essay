@@ -323,7 +323,16 @@ function PsychometricTest() {
 
   return (
     <div className="psychometric-test">
-      {/* Home Screen */}
+      {/* Home Screen */}      <div className="line-limit-info">
+        <p>מגבלות שורות:</p>
+        <ul>
+          <li>מינימום: {minLines} שורות</li>
+        </ul>
+      </div>
+      
+      <footer className="footer">
+        <p>© {new Date().getFullYear()} Roee Getz. All rights reserved.</p>
+      </footer>
       {screen === 'home' && (
         <div className="home-screen">
           <div className="home-content">
