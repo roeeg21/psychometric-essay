@@ -15,6 +15,7 @@ function PsychometricTest() {
   const [minLines] = useState(25);
   const [maxLines] = useState(50);
   const [hardLimit] = useState(55);
+  const [charLimit] = useState(100); // Character limit per line
 
   const writingAreaRef = useRef(null);
   const lineNumbersRef = useRef(null);
@@ -73,12 +74,55 @@ function PsychometricTest() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [screen]);
 
+  // Break text into lines with character limit
+  const breakTextIntoLines = (inputText) => {
+    if (!inputText) return [];
+
+    const lines = [];
+    const paragraphs = inputText.split('\n');
+
+    paragraphs.forEach(paragraph => {
+      if (!paragraph.trim()) {
+        lines.push('');
+        return;
+      }
+
+      const words = paragraph.split(' ');
+      let currentLine = '';
+
+      words.forEach(word => {
+        const testLine = currentLine ? currentLine + ' ' + word : word;
+        
+        // If adding this word exceeds the character limit
+        if (testLine.length > charLimit) {
+          // If current line has content, push it and start new line with the word
+          if (currentLine) {
+            lines.push(currentLine);
+            currentLine = word;
+          } else {
+            // Single word exceeds limit, force break it
+            lines.push(word);
+            currentLine = '';
+          }
+        } else {
+          currentLine = testLine;
+        }
+      });
+
+      // Push remaining content
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+    });
+
+    return lines;
+  };
+
   // Count lines and update line numbers
   const updateLineNumbers = () => {
     if (!writingAreaRef.current) return;
 
-    const textarea = writingAreaRef.current;
-    const currentText = textarea.value;
+    const currentText = writingAreaRef.current.value;
 
     if (!currentText) {
       setLineCount(0);
@@ -88,30 +132,13 @@ function PsychometricTest() {
       return;
     }
 
-    // Create temporary element to measure
-    const tempDiv = document.createElement('div');
-    tempDiv.style.position = 'absolute';
-    tempDiv.style.visibility = 'hidden';
-    tempDiv.style.width = textarea.offsetWidth + 'px';
-    tempDiv.style.fontFamily = window.getComputedStyle(textarea).fontFamily;
-    tempDiv.style.fontSize = window.getComputedStyle(textarea).fontSize;
-    tempDiv.style.lineHeight = window.getComputedStyle(textarea).lineHeight;
-    tempDiv.style.whiteSpace = 'pre-wrap';
-    tempDiv.style.wordWrap = 'break-word';
-    tempDiv.style.direction = 'rtl';
-    tempDiv.textContent = currentText;
-
-    document.body.appendChild(tempDiv);
-    const lineHeight = parseFloat(window.getComputedStyle(textarea).lineHeight);
-    const lines = Math.ceil(tempDiv.offsetHeight / lineHeight);
-    document.body.removeChild(tempDiv);
-
-    setLineCount(lines);
+    const lines = breakTextIntoLines(currentText);
+    setLineCount(lines.length);
 
     // Update line numbers display
     if (lineNumbersRef.current) {
       lineNumbersRef.current.innerHTML = '';
-      for (let i = 1; i <= lines; i++) {
+      for (let i = 1; i <= lines.length; i++) {
         const lineNum = document.createElement('div');
         lineNum.className = 'line-number';
         lineNum.textContent = i;
@@ -124,26 +151,11 @@ function PsychometricTest() {
   const handleTextChange = (e) => {
     const newText = e.target.value;
     
-    // Check line count before allowing change
-    const tempTextarea = document.createElement('textarea');
-    tempTextarea.style.position = 'absolute';
-    tempTextarea.style.visibility = 'hidden';
-    tempTextarea.style.width = writingAreaRef.current.offsetWidth + 'px';
-    tempTextarea.style.fontFamily = window.getComputedStyle(writingAreaRef.current).fontFamily;
-    tempTextarea.style.fontSize = window.getComputedStyle(writingAreaRef.current).fontSize;
-    tempTextarea.style.lineHeight = window.getComputedStyle(writingAreaRef.current).lineHeight;
-    tempTextarea.style.whiteSpace = 'pre-wrap';
-    tempTextarea.style.wordWrap = 'break-word';
-    tempTextarea.style.direction = 'rtl';
-    tempTextarea.value = newText;
-
-    document.body.appendChild(tempTextarea);
-    const lineHeight = parseFloat(window.getComputedStyle(writingAreaRef.current).lineHeight);
-    const lines = Math.ceil(tempTextarea.scrollHeight / lineHeight);
-    document.body.removeChild(tempTextarea);
+    // Check line count with character limit
+    const lines = breakTextIntoLines(newText);
 
     // Enforce hard limit
-    if (lines > hardLimit) {
+    if (lines.length > hardLimit) {
       return; // Don't allow the change
     }
 
@@ -162,61 +174,7 @@ function PsychometricTest() {
 
   // Get actual rendered lines
   const getTextLines = () => {
-    if (!text) return [];
-
-    const tempDiv = document.createElement('div');
-    tempDiv.style.position = 'absolute';
-    tempDiv.style.visibility = 'hidden';
-    tempDiv.style.width = writingAreaRef.current.offsetWidth + 'px';
-    tempDiv.style.fontFamily = window.getComputedStyle(writingAreaRef.current).fontFamily;
-    tempDiv.style.fontSize = window.getComputedStyle(writingAreaRef.current).fontSize;
-    tempDiv.style.lineHeight = window.getComputedStyle(writingAreaRef.current).lineHeight;
-    tempDiv.style.whiteSpace = 'pre-wrap';
-    tempDiv.style.wordWrap = 'break-word';
-    tempDiv.style.direction = 'rtl';
-    tempDiv.style.textAlign = 'right';
-
-    document.body.appendChild(tempDiv);
-
-    const lines = [];
-    const paragraphs = text.split('\n');
-
-    paragraphs.forEach(paragraph => {
-      if (!paragraph) {
-        lines.push('');
-        return;
-      }
-
-      tempDiv.textContent = paragraph;
-      const lineHeight = parseFloat(window.getComputedStyle(writingAreaRef.current).lineHeight);
-      const numLines = Math.round(tempDiv.offsetHeight / lineHeight);
-
-      if (numLines <= 1) {
-        lines.push(paragraph);
-      } else {
-        const words = paragraph.split(' ');
-        let currentLine = '';
-
-        words.forEach((word, idx) => {
-          const testLine = currentLine ? currentLine + ' ' + word : word;
-          tempDiv.textContent = testLine;
-
-          if (tempDiv.offsetHeight > lineHeight * 1.5 && currentLine) {
-            lines.push(currentLine);
-            currentLine = word;
-          } else {
-            currentLine = testLine;
-          }
-
-          if (idx === words.length - 1 && currentLine) {
-            lines.push(currentLine);
-          }
-        });
-      }
-    });
-
-    document.body.removeChild(tempDiv);
-    return lines;
+    return breakTextIntoLines(text);
   };
 
   // Count words in a line
@@ -298,7 +256,8 @@ function PsychometricTest() {
       totalWords += words;
       return {
         lineNumber: index + 1,
-        wordCount: words
+        wordCount: words,
+        charCount: line.length
       };
     });
 
@@ -323,16 +282,7 @@ function PsychometricTest() {
 
   return (
     <div className="psychometric-test">
-      {/* Home Screen */}      <div className="line-limit-info">
-        <p>מגבלות שורות:</p>
-        <ul>
-          <li>מינימום: {minLines} שורות</li>
-        </ul>
-      </div>
-      
-      <footer className="footer">
-        <p>© {new Date().getFullYear()} Roee Getz. All rights reserved.</p>
-      </footer>
+      {/* Home Screen */}
       {screen === 'home' && (
         <div className="home-screen">
           <div className="home-content">
@@ -358,11 +308,12 @@ function PsychometricTest() {
             </div>
 
             <div className="line-limit-info">
-              <p>מגבלות שורות:</p>
+              <p>מגבלות:</p>
               <ul>
                 <li>מינימום: {minLines} שורות</li>
                 <li>מומלץ: {minLines}-{maxLines} שורות</li>
                 <li>מקסימום מוחלט: {hardLimit} שורות</li>
+                <li>מקסימום תווים בשורה: {charLimit}</li>
               </ul>
             </div>
 
@@ -372,6 +323,10 @@ function PsychometricTest() {
             
             <p className="info-text">לאחר ההתחלה, הטיימר יתחיל לספור לאחור מיידית</p>
           </div>
+          
+          <footer className="footer">
+            <p>© {new Date().getFullYear()} Roee Getz. All rights reserved.</p>
+          </footer>
         </div>
       )}
 
@@ -459,12 +414,13 @@ function PsychometricTest() {
               </div>
             </div>
             <div className="line-results">
-              <h3>מילים בכל שורה:</h3>
+              <h3>מילים ותווים בכל שורה:</h3>
               <div className="line-results-list">
                 {results.lineWordCounts.map(item => (
                   <div key={item.lineNumber} className="line-result-item">
                     <span className="line-num">שורה {item.lineNumber}</span>
                     <span className="word-count">{item.wordCount} מילים</span>
+                    <span className="char-count">({item.charCount} תווים)</span>
                   </div>
                 ))}
               </div>
